@@ -13,7 +13,9 @@ import (
 	"golang.design/x/clipboard"
 )
 
-var clipboardFormatRegex = regexp.MustCompile(`(?s)^//\s*([^\n]+)\n(.*)`)
+// Menggunakan dua regex terpisah untuk memastikan keduanya ditangani dengan benar
+var slashCommentRegex = regexp.MustCompile(`(?s)^//\s*([^\n]+)\r?\n(.*)`)
+var htmlCommentRegex = regexp.MustCompile(`(?s)^<!--\s*([^\n]+)\s*-->\r?\n(.*)`)
 
 func main() {
 	if len(os.Args) < 2 {
@@ -60,12 +62,27 @@ func main() {
 }
 
 func parseAndWrite(content string, baseDir string) {
-	matches := clipboardFormatRegex.FindStringSubmatch(content)
+	var relativePath string
+	var fileContent string
+	var matched bool
 
-	if len(matches) == 3 {
-		relativePath := strings.TrimSpace(matches[1])
-		fileContent := matches[2]
+	// Coba regex untuk format // namafile.ext
+	if matches := slashCommentRegex.FindStringSubmatch(content); len(matches) == 3 {
+		relativePath = strings.TrimSpace(matches[1])
+		fileContent = matches[2]
+		matched = true
+	}
 
+	// Coba regex untuk format <!-- namafile.ext -->
+	if !matched {
+		if matches := htmlCommentRegex.FindStringSubmatch(content); len(matches) == 3 {
+			relativePath = strings.TrimSpace(matches[1])
+			fileContent = matches[2]
+			matched = true
+		}
+	}
+
+	if matched {
 		if strings.Contains(relativePath, "..") || filepath.IsAbs(relativePath) || relativePath == "" {
 			log.Printf("Peringatan: Path relatif tidak valid atau kosong ('%s'), dilewati.", relativePath)
 			return
@@ -95,8 +112,19 @@ func parseAndWrite(content string, baseDir string) {
 				fmt.Printf("Sukses MEMBUAT file baru: %s\n", fullPath)
 			}
 		}
-
 	} else {
 		fmt.Println("Konten clipboard tidak cocok dengan format yang diharapkan.")
+		fmt.Println("Format yang diharapkan:")
+		fmt.Println("// namafile.ext")
+		fmt.Println("atau")
+		fmt.Println("<!-- namafile.ext -->")
+		fmt.Println("diikuti dengan konten file")
+
+		// Untuk debugging
+		if len(content) > 50 {
+			fmt.Printf("Awal konten clipboard: %s\n", content[:50])
+		} else {
+			fmt.Printf("Konten clipboard: %s\n", content)
+		}
 	}
 }
