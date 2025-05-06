@@ -13,14 +13,11 @@ import (
 	"golang.design/x/clipboard"
 )
 
-// Menggunakan dua regex terpisah untuk memastikan keduanya ditangani dengan benar
 var slashCommentRegex = regexp.MustCompile(`(?s)^//\s*([^\n]+)\r?\n(.*)`)
 var htmlCommentRegex = regexp.MustCompile(`(?s)^<!--\s*([^\n]+)\s*-->\r?\n(.*)`)
 
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Println("Penggunaan: go run main.go <direktori_tujuan>")
-		fmt.Println("Contoh: go run main.go /path/ke/proyek/anda")
 		os.Exit(1)
 	}
 	targetDir := os.Args[1]
@@ -35,10 +32,6 @@ func main() {
 		log.Fatalf("Error: Path tujuan '%s' bukanlah sebuah direktori.", targetDir)
 	}
 
-	fmt.Printf("Memantau clipboard. Menyimpan file ke direktori: %s\n", targetDir)
-	fmt.Println("Format yang diharapkan:")
-	fmt.Println("Konten file dimulai di baris ini...")
-
 	err = clipboard.Init()
 	if err != nil {
 		log.Fatalf("Gagal menginisialisasi clipboard: %v", err)
@@ -50,9 +43,6 @@ func main() {
 		currentClipboardContent := clipboard.Read(clipboard.FmtText)
 
 		if currentClipboardContent != nil && string(currentClipboardContent) != string(previousClipboardContent) {
-			fmt.Println("-----------------------------------------")
-			fmt.Println("Konten clipboard baru terdeteksi!")
-
 			parseAndWrite(string(currentClipboardContent), targetDir)
 			previousClipboardContent = currentClipboardContent
 		}
@@ -66,14 +56,12 @@ func parseAndWrite(content string, baseDir string) {
 	var fileContent string
 	var matched bool
 
-	// Coba regex untuk format // namafile.ext
 	if matches := slashCommentRegex.FindStringSubmatch(content); len(matches) == 3 {
 		relativePath = strings.TrimSpace(matches[1])
 		fileContent = matches[2]
 		matched = true
 	}
 
-	// Coba regex untuk format <!-- namafile.ext -->
 	if !matched {
 		if matches := htmlCommentRegex.FindStringSubmatch(content); len(matches) == 3 {
 			relativePath = strings.TrimSpace(matches[1])
@@ -107,24 +95,10 @@ func parseAndWrite(content string, baseDir string) {
 			log.Printf("Error menulis file '%s': %v", fullPath, err)
 		} else {
 			if fileExists {
-				fmt.Printf("Sukses MENIMPA file: %s\n", fullPath)
+				fmt.Printf("diubah: %s\n", fullPath)
 			} else {
-				fmt.Printf("Sukses MEMBUAT file baru: %s\n", fullPath)
+				fmt.Printf("dibuat: %s\n", fullPath)
 			}
-		}
-	} else {
-		fmt.Println("Konten clipboard tidak cocok dengan format yang diharapkan.")
-		fmt.Println("Format yang diharapkan:")
-		fmt.Println("// namafile.ext")
-		fmt.Println("atau")
-		fmt.Println("<!-- namafile.ext -->")
-		fmt.Println("diikuti dengan konten file")
-
-		// Untuk debugging
-		if len(content) > 50 {
-			fmt.Printf("Awal konten clipboard: %s\n", content[:50])
-		} else {
-			fmt.Printf("Konten clipboard: %s\n", content)
 		}
 	}
 }
