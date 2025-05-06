@@ -35,9 +35,7 @@ func main() {
 
 	fmt.Printf("Memantau clipboard. Menyimpan file ke direktori: %s\n", targetDir)
 	fmt.Println("Format yang diharapkan:")
-	fmt.Println("// path/relatif/ke/file.ekstensi")
 	fmt.Println("Konten file dimulai di baris ini...")
-	fmt.Println("Tekan Ctrl+C untuk berhenti.")
 
 	err = clipboard.Init()
 	if err != nil {
